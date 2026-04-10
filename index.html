@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artemis Mission Command | NASA-Grade Live-Ops</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0b10;
+            --bg-card: #141722;
+            --accent-blue: #0066ff;
+            --accent-cyan: #00f2ff;
+            --accent-orange: #ff6b00;
+            --danger: #ff3e3e;
+            --success: #00e676;
+            --text-main: #e0e6ed;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            width: 80px;
+            background: rgba(10, 11, 16, 0.95);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            z-index: 100;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border-radius: 8px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
+        }
+
+        .nav-item {
+            width: 45px;
+            height: 45px;
+            margin: 10px 0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-dim);
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header / Top Bar */
+        header {
+            height: 70px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            background: rgba(20, 23, 34, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-badge {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Dashboard Grid */
+        .dashboard-container {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        /* Live Feed Component */
+        .live-feed {
+            grid-column: span 8;
+            grid-row: span 2;
+            height: 500px;
+            background: #000;
+            padding: 0;
+            position: relative;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+        }
+
+        .overlay-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+        }
+
+        .telemetry-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-cyan);
+            font-family: var(--font-mono);
+            min-width: 200px;
+        }
+
+        /* Telemetry Stats */
+        .telemetry-grid {
+            grid-column: span 4;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        /* Editorial Workflow */
+        .workflow-board {
+            grid-column: span 4;
+            grid-row: span 2;
+        }
+
+        .workflow-item {
+            padding: 12px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent-orange);
+            font-size: 0.9rem;
+        }
+
+        .workflow-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        /* Change Tracker & SLA */
+        .change-tracker { grid-column: span 4; }
+        .sla-deadboard { grid-column: span 4; }
+        .audit-logs { grid-column: span 4; }
+
+        .log-entry {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-timestamp { color: var(--text-dim); }
+        .log-action { color: var(--accent-cyan); font-weight: bold; }
+
+        /* Controls */
+        .control-panel {
+            grid-column: span 12;
+            display: flex;
+            gap: 15px;
+            background: linear-gradient(90deg, rgba(255,62,62,0.1), transparent);
+            border: 1px solid rgba(255,62,62,0.3);
+        }
+
+        .btn-emergency {
+            background: var(--danger);
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .btn-emergency:hover {
+            box-shadow: 0 0 20px rgba(255, 62, 62, 0.5);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            height: 40px;
+            background: #050608;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        /* Trajectory Canvas */
+        #splashdownPredictor {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .tenant-switcher {
+            background: rgba(255,255,255,0.05);
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .live-feed { grid-column: span 12; }
+            .telemetry-grid { grid-column: span 12; }
+            .workflow-board { grid-column: span 6; }
+            .sla-deadboard { grid-column: span 6; }
+            .audit-logs { grid-column: span 12; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">A</div>
+        <div class="nav-item active" title="Mission Control">📡</div>
+        <div class="nav-item" title="Telemetry Analytics">📊</div>
+        <div class="nav-item" title="Editorial Workflow">📝</div>
+        <div class="nav-item" title="Governance & RBAC">🔐</div>
+        <div class="nav-item" title="API Health">🔌</div>
+        <div style="flex: 1;"></div>
+        <div class="nav-item" title="System Settings">⚙️</div>
+    </aside>
+
+    <main>
+        <header>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <h1 style="font-size: 1.2rem; font-weight: 800;">ARTEMIS LIVE-OPS</h1>
+                <div class="tenant-switcher">NASA_MSFC_Huntsville ▼</div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    TRANS-LUNAR INJECTION
+                </div>
+                <div style="text-align: right">
+                    <div style="font-size: 0.7rem; color: var(--text-dim);">OPERATOR</div>
+                    <div style="font-size: 0.85rem; font-weight: 600;">Cmdr. Forge_AI</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-container">
+            
+            <!-- Live Feed Component -->
+            <section class="card live-feed">
+                <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=2000" class="video-placeholder" alt="Live Stream">
+                <div class="overlay-ui">
+                    <div style="padding: 10px; background: rgba(0,0,0,0.7); border-radius: 4px; font-weight: bold; border-left: 3px solid var(--danger);">LIVE // 4K BROADCAST</div>
+                </div>
+                <div class="telemetry-overlay">
+                    <div style="color: var(--accent-cyan); font-size: 0.7rem; margin-bottom: 5px;">ORION TELEMETRY (LIVE)</div>
+                    <div>VELOCITY: <span id="tel-vel">24,512</span> km/h</div>
+                    <div>ALTITUDE: <span id="tel-alt">384,400</span> km</div>
+                    <div>O2 LEVELS: 98.4%</div>
+                    <div>FUEL CAP: 72.1%</div>
+                </div>
+            </section>
+
+            <!-- Telemetry Dashboard -->
+            <div class="telemetry-grid">
+                <div class="card stat-box">
+                    <div class="stat-value" id="val-gforce">1.2 G</div>
+                    <div class="stat-label">G-FORCE</div>
+                </div>
+                <div class="card stat-box">
+                    <div class="stat-value" id="val-cabin">21.5°C</div>
+                    <div class="stat-label">CABIN TEMP</div>
+                </div>
+                <div class="card stat-box">
+                    <div class="stat-value" id="val-comm">1.4s</div>
+                    <div class="stat-label">COMM LATENCY</div>
+                </div>
+                <div class="card stat-box">
+                    <div class="stat-value" id="val-rad">0.12 mSv</div>
+                    <div class="stat-label">RAD DOSAGE</div>
+                </div>
+
+                <section class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <div class="card-title">Splashdown Predictor</div>
+                    </div>
+                    <canvas id="splashdownPredictor"></canvas>
+                    <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 5px; text-align: center;">Target: Pacific Recovery Zone A-9</div>
+                </section>
+            </div>
+
+            <!-- Workflow Board -->
+            <section class="card workflow-board">
+                <div class="card-header">
+                    <div class="card-title">Editorial Workflow</div>
+                    <span style="font-size: 0.7rem; color: var(--accent-orange);">3 Pending</span>
+                </div>
+                <div class="workflow-item">
+                    <div>Public Flash: "Orion completes orbit cycle"</div>
+                    <div class="workflow-meta">
+                        <span>Source: Telemetry_Bot</span>
+                        <button class="btn-approve">APPROVE</button>
+                    </div>
+                </div>
+                <div class="workflow-item" style="border-color: var(--danger);">
+                    <div>URGENT: "Trajectory Correction Maneuver (TCM) Success"</div>
+                    <div class="workflow-meta">
+                        <span>Source: Flight_Dir</span>
+                        <button class="btn-approve">APPROVE</button>
+                    </div>
+                </div>
+                <div class="workflow-item">
+                    <div>Image Release: "Lunar Far Side High-Res"</div>
+                    <div class="workflow-meta">
+                        <span>Source: Imagery_Unit</span>
+                        <button class="btn-approve">APPROVE</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLA Deadboard -->
+            <section class="card sla-deadboard">
+                <div class="card-header">
+                    <div class="card-title">Integration Health (NASA / ESA)</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span>NASA DSN Pipeline</span>
+                    <span style="color: var(--success);">99.99% Uptime</span>
+                </div>
+                <div style="background: #1e2533; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px;">
+                    <div style="width: 98%; height: 100%; background: var(--success);"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <span>ESA Payload Link</span>
+                    <span style="color: var(--accent-orange);">94.2% (Degraded)</span>
+                </div>
+                <div style="background: #1e2533; height: 8px; border-radius: 4px; overflow: hidden;">
+                    <div style="width: 94%; height: 100%; background: var(--accent-orange);"></div>
+                </div>
+            </section>
+
+            <!-- Change Tracker Panel -->
+            <section class="card change-tracker">
+                <div class="card-header">
+                    <div class="card-title">Live Change Tracker</div>
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">[14:22:01]</span>
+                    <span class="log-action">PATCH</span>
+                    <span>Timeline updated: Burn +2s</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">[14:21:44]</span>
+                    <span class="log-action">SYNC</span>
+                    <span>NASA Metadata reconciled</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">[14:19:02]</span>
+                    <span class="log-action">AUTH</span>
+                    <span>SSO Token rotation successful</span>
+                </div>
+            </section>
+
+            <!-- Rollback / Emergency Control -->
+            <section class="card control-panel">
+                <div style="flex: 1;">
+                    <h3 style="color: var(--danger); font-size: 0.9rem;">SAFE-CRITICAL ACTIONS</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-dim);">Unauthorized rollback triggers immediate audit notification.</p>
+                </div>
+                <button class="btn-emergency" onclick="confirmRollback()">EMERGENCY DATA ROLLBACK</button>
+                <button class="btn-emergency" style="background: transparent; border: 1px solid var(--danger);">KILL BROADCAST</button>
+            </section>
+
+        </div>
+
+        <footer>
+            © 2026 AINexForge. All rights reserved. | Mission Time: T+ 148:12:44:09 | Environment: Production (US-EAST-1)
+        </footer>
+    </main>
+
+    <script>
+        // Real-time Telemetry Simulation
+        function updateTelemetry() {
+            const vel = document.getElementById('tel-vel');
+            const alt = document.getElementById('tel-alt');
+            const gforce = document.getElementById('val-gforce');
+            const cabin = document.getElementById('val-cabin');
+            
+            setInterval(() => {
+                const curVel = parseInt(vel.innerText.replace(',', '')) + Math.floor(Math.random() * 5) - 2;
+                vel.innerText = curVel.toLocaleString();
+                
+                const curAlt = parseInt(alt.innerText.replace(',', '')) - 1;
+                alt.innerText = curAlt.toLocaleString();
+
+                gforce.innerText = (1.2 + (Math.random() * 0.1)).toFixed(2) + " G";
+                cabin.innerText = (21.5 + (Math.random() * 0.4)).toFixed(1) + "°C";
+            }, 2000);
+        }
+
+        // Splashdown Trajectory Visualization
+        function drawTrajectory() {
+            const canvas = document.getElementById('splashdownPredictor');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.offsetWidth;
+            const h = canvas.height = canvas.offsetHeight;
+
+            ctx.strokeStyle = '#0066ff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.bezierCurveTo(w/3, 10, 2*w/3, h-10, w, h/2);
+            ctx.stroke();
+
+            // Target Point
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#00f2ff';
+            ctx.beginPath();
+            ctx.arc(w * 0.85, h/1.8, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Animation Loop for noise
+            let offset = 0;
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+                
+                // Draw path
+                ctx.strokeStyle = 'rgba(0, 102, 255, 0.5)';
+                ctx.beginPath();
+                ctx.moveTo(0, h/2);
+                ctx.bezierCurveTo(w/3, 10 + Math.sin(offset)*10, 2*w/3, h-10, w, h/2);
+                ctx.stroke();
+
+                // Current pod position
+                ctx.fillStyle = '#ff6b00';
+                const pos = (offset % 100) / 100;
+                ctx.beginPath();
+                ctx.arc(w * 0.4, h/2.1, 4, 0, Math.PI*2);
+                ctx.fill();
+
+                offset += 0.02;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function confirmRollback() {
+            const code = prompt("CRITICAL: Enter Level-5 Authorization Code to initiate rollback:");
+            if(code) {
+                alert("ROLLBACK SEQUENCE INITIATED. REVERTING TO LAST KNOWN GOOD STATE...");
+            }
+        }
+
+        // Initialize
+        window.onload = () => {
+            updateTelemetry();
+            drawTrajectory();
+            
+            // Randomly log events
+            setInterval(() => {
+                const tracker = document.querySelector('.change-tracker');
+                const log = document.createElement('div');
+                log.className = 'log-entry';
+                const now = new Date();
+                log.innerHTML = `
+                    <span class="log-timestamp">[${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}]</span>
+                    <span class="log-action">SYNC</span>
+                    <span>Auto-reconciliation event triggered</span>
+                `;
+                tracker.appendChild(log);
+                if(tracker.children.length > 8) tracker.removeChild(tracker.children[2]);
+            }, 10000);
+        };
+    </script>
+</body>
+</html>
